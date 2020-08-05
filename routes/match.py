@@ -11,16 +11,25 @@ def start_match():
     data = request.get_json()
 
     if data['match_type'] == 'friendly':
-        match = Match(Match_Type.Friendly, data['username'])
-        match.save()
+        # JOIN VIA LINK
+        if 'id' in data.keys():
+            match = Match.query.filter_by(id=data['id']).first()
+            if match and match.black_player is None:
+                Match.query.filter_by(id=match.id).update(values={'black_player': data['username']})
+            else:
+                return custom_response({'message': 'Invalid link'}, 400)
+        # SHARE LINK
+        else:
+            match = Match(Match_Type.Friendly, data['username'])
+            match.save()
     else:
         match = Match.query.filter(and_(Match.black_player == None, Match.match_type == Match_Type.Random)).first()
+        # FREE SPOT IN A MATCH
         if match:
             Match.query.filter_by(id=match.id).update(values={'black_player': data['username']})
-            match = Match.query.filter_by(id=match.id).first()
+        # ALL SPOTS TAKEN, CREATE NEW MATCH
         else:
             match = Match(Match_Type.Random, data['username'])
             match.save()
     db.session.commit()
     return custom_response(match.serialize(), 201)
-

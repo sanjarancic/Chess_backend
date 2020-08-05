@@ -6,7 +6,8 @@ dependencies = [
     'flask_script',
     'flask_sqlalchemy',
     'sqlalchemy',
-    'psycopg2'
+    'psycopg2',
+    'flask_socketio'
 ]
 
 setup(
