@@ -8,7 +8,8 @@ dependencies = [
     'sqlalchemy',
     'psycopg2',
     'flask_socketio',
-    'flask_cors'
+    'flask_cors',
+    'gunicorn'
 ]
 
 setup(
