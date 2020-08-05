@@ -2,8 +2,8 @@ from flask import Flask
 from config import config
 from flask_socketio import SocketIO
 from models import Match, Match_Type, db
-from utils import custom_response
 from sqlalchemy import and_
+from flask_socketio import emit
 
 app = Flask(__name__)
 
@@ -27,23 +27,26 @@ def start_match(data):
             match = Match.query.filter_by(id=data['id']).first()
             if match and match.black_player is None:
                 Match.query.filter_by(id=match.id).update(values={'black_player': data['username']})
+                emit('match_started', match.serialize())
             else:
-                return custom_response({'message': 'Invalid link'}, 400)
+                return emit('invalid_request')
         # SHARE LINK
         else:
             match = Match(Match_Type.Friendly, data['username'])
             match.save()
+            emit('match_created', match.serialize())
     else:
         match = Match.query.filter(and_(Match.black_player == None, Match.match_type == Match_Type.Random)).first()
         # FREE SPOT IN A MATCH
         if match:
             Match.query.filter_by(id=match.id).update(values={'black_player': data['username']})
+            emit('match_started', match.serialize())
         # ALL SPOTS TAKEN, CREATE NEW MATCH
         else:
             match = Match(Match_Type.Random, data['username'])
             match.save()
+            emit('match_created', match.serialize())
     db.session.commit()
-    return custom_response(match.serialize(), 201)
 
 if __name__ == '__main__':
     socketio.run(app)
