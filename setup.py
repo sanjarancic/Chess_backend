@@ -9,7 +9,8 @@ dependencies = [
     'psycopg2',
     'flask_socketio',
     'flask_cors',
-    'gunicorn'
+    'gunicorn',
+    'python-chess'
 ]
 
 setup(
