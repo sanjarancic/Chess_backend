@@ -73,47 +73,70 @@ def make_a_move(data):
     if data['id'] not in BOARDS.keys():
         emit('invalid game')
     if data['replace']:
-        move = data['from'] + data['to'] + data['replace'].lower()
+        move = data['from'] + data['to'] + data['replace']
     else:
         move = data['from'] + data['to']
 
     board = BOARDS[data['id']]['board']
     player = request.sid
 
-    print(data)
-    print(board.turn)
-
-
     # WHITE PLAYER'S TURN
-    if BOARDS[data['id']]['white_player'] == player and board.turn == chess.WHITE and chess.Move.from_uci(move) in board.pseudo_legal_moves:
+    if BOARDS[data['id']]['white_player'] == player and board.turn == chess.WHITE and chess.Move.from_uci(
+            move) in board.pseudo_legal_moves:
         BOARDS[data['id']]['n_moves_white'] += 1
         board.push(chess.Move.from_uci(move))
+        emit('opponent_move', data, room=BOARDS[data['id']]['black_player'])
         if board.is_checkmate():
-            emit('checkmate', room = data['id'])
+            match = Match.query.filter_by(id=data['id']).first()
+            win = {
+                'winner': match.white_player
+            }
+            print(BOARDS[data['id']])
+            Match.query.filter_by(id=match.id).update(values={'n_moves_white': BOARDS[data['id']]['n_moves_white'],
+                                                              'n_moves_black': BOARDS[data['id']]['n_moves_black'],
+                                                              'winner': win['winner']})
+            emit('checkmate', win, room=data['id'])
         elif board.is_stalemate():
-            emit('stealmate', room = data['id'])
-        elif board.is_game_over():
-            emit('game_over', room = data['id'])
-        elif board.is_check:
-            emit('check', data, BOARDS[data['id']]['black_player'])
-        else:
-            emit('opponent_move', data, BOARDS[data['id']]['black_player'])
-    # BLACK PLAYER'S TURN
-    elif BOARDS[data['id']]['black_player'] == player and board.turn == chess.BLACK and chess.Move.from_uci(move) in board.pseudo_legal_moves:
-        BOARDS[data['id']]['n_moves_black'] += 1
-        board.push(chess.Move.from_uci(move))
-        if board.is_checkmate():
-            emit('checkmate', room=data['id'])
-        elif board.is_stalemate():
+            Match.query.filter_by(id=data['id']).update(values={'n_moves_white': BOARDS[data['id']]['n_moves_white'],
+                                                                'n_moves_black': BOARDS[data['id']]['n_moves_black']})
             emit('stealmate', room=data['id'])
         elif board.is_game_over():
+            Match.query.filter_by(id=data['id']).update(values={'n_moves_white': BOARDS[data['id']]['n_moves_white'],
+                                                                'n_moves_black': BOARDS[data['id']]['n_moves_black']})
             emit('game_over', room=data['id'])
-        elif board.is_check:
-            emit('check', data, BOARDS[data['id']]['white_player'])
-        else:
-            emit('opponent_move', data, BOARDS[data['id']]['white_player'])
+        elif board.is_check():
+            emit('check', room=data['id'])
+
+    # BLACK PLAYER'S TURN
+    elif BOARDS[data['id']]['black_player'] == player and board.turn == chess.BLACK and chess.Move.from_uci(
+            move) in board.pseudo_legal_moves:
+        BOARDS[data['id']]['n_moves_black'] += 1
+        board.push(chess.Move.from_uci(move))
+        emit('opponent_move', data, BOARDS[data['id']]['white_player'])
+        if board.is_checkmate():
+            match = Match.query.filter_by(id=data['id']).first()
+            win = {
+                'winner': match.black_player
+            }
+            print(BOARDS[data['id']])
+            Match.query.filter_by(id=data['id']).update(values={'n_moves_white': BOARDS[data['id']]['n_moves_white'],
+                                                              'n_moves_black': BOARDS[data['id']]['n_moves_black'],
+                                                              'winner': win['winner']})
+            emit('checkmate', win, room=data['id'])
+        elif board.is_stalemate():
+            Match.query.filter_by(id=data['id']).update(values={'n_moves_white': BOARDS[data['id']]['n_moves_white'],
+                                                              'n_moves_black': BOARDS[data['id']]['n_moves_black']})
+            emit('stealmate', room=data['id'])
+        elif board.is_game_over():
+            Match.query.filter_by(id=data['id']).update(values={'n_moves_white': BOARDS[data['id']]['n_moves_white'],
+                                                                'n_moves_black': BOARDS[data['id']]['n_moves_black']})
+            emit('game_over', room=data['id'])
+        elif board.is_check():
+            emit('check', room=data['id'])
+
     else:
         emit('not your move', room=player)
+    db.session.commit()
 
 if __name__ == '__main__':
     socketio.run(app)
