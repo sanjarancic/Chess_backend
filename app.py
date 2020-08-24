@@ -41,7 +41,7 @@ def start_match(data):
                     return emit('invalid_request')
             # SHARE LINK
             else:
-                create_new_match(data)
+                create_new_match(data, Match_Type.Friendly)
         else:
             match = Match.query.filter(and_(Match.black_player == None, Match.match_type == Match_Type.Random)).first()
             # FREE SPOT IN A MATCH
@@ -50,13 +50,13 @@ def start_match(data):
 
             # ALL SPOTS TAKEN, CREATE NEW MATCH
             else:
-                create_new_match(data)
+                create_new_match(data, Match_Type.Random)
 
         db.session.commit()
 
 
-def create_new_match(data):
-    match = Match(Match_Type.Random, data['username'])
+def create_new_match(data, type):
+    match = Match(type, data['username'])
     match.save()
     emit('match_created', match.serialize())
     join_room(match.id)
